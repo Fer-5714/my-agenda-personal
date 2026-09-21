@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda & Gestión de Finanzas</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col md:flex-row overflow-hidden font-sans bg-slate-950 text-slate-100">
+
+  <!-- Sidebar Navigation -->
+  <aside class="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex md:flex-col justify-between shrink-0">
+    <div>
+      <!-- App Brand Header -->
+      <div class="p-4 md:p-6 flex items-center justify-between md:justify-start space-x-3 border-b border-slate-800/60">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i class="fa-solid fa-layer-group text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">GestorPro</h1>
+          <p class="text-xs text-slate-400">Agenda & Finanzas</p>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="flex md:flex-col p-2 md:p-4 space-x-1 md:space-x-0 md:space-y-1.5 overflow-x-auto">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl w-full text-left transition-all text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-chart-pie w-5 text-center text-lg"></i>
+          <span class="whitespace-nowrap">Dashboard</span>
+        </button>
+
+        <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl w-full text-left transition-all text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-list-check w-5 text-center text-lg"></i>
+          <span class="whitespace-nowrap">Agenda y Trabajos</span>
+        </button>
+
+        <button onclick="switchTab('finances')" id="nav-finances" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl w-full text-left transition-all text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-wallet w-5 text-center text-lg"></i>
+          <span class="whitespace-nowrap">Finanzas</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Notification Permission Status Card -->
+    <div class="hidden md:block p-4 m-4 rounded-xl bg-slate-800/50 border border-slate-700/50 text-xs">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-semibold text-slate-300">Notificaciones Web</span>
+        <span id="notif-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">Pendiente</span>
+      </div>
+      <p class="text-slate-400 mb-3">Habilita las alertas para no perderte entregas importantes.</p>
+      <button onclick="requestNotificationPermission()" id="btn-request-notif" class="w-full py-1.5 px-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs transition font-medium">
+        Activar Alertas
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950">
+    <!-- Top Header -->
+    <header class="h-16 border-b border-slate-800/80 bg-slate-900/50 backdrop-blur px-6 flex items-center justify-between shrink-0">
+      <div class="flex items-center space-x-4">
+        <h2 id="page-title" class="text-xl font-bold text-white">Dashboard</h2>
+      </div>
+
+      <!-- Current Date and Quick Actions -->
+      <div class="flex items-center space-x-4">
+        <div class="hidden sm:flex items-center text-xs text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700/50">
+          <i class="fa-regular fa-calendar-days mr-2 text-cyan-400"></i>
+          <span id="current-date-str">-- / -- / ----</span>
+        </div>
+        <button onclick="openModal('modal-task')" class="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-cyan-500/20 transition duration-150">
+          <i class="fa-solid fa-plus"></i>
+          <span class="hidden sm:inline">Nueva Tarea</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Sections Area -->
+    <div id="content-scroll" class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+
+      <!-- SECTION 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-content space-y-6">
+        <!-- Top Metrics Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Metric 1: Pending Tasks -->
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tareas Pendientes</span>
+              <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <i class="fa-solid fa-clock"></i>
+              </div>
+            </div>
+            <div id="dash-pending-count" class="text-3xl font-extrabold text-white">0</div>
+            <p class="text-xs text-slate-500 mt-2">Acciones por completar</p>
+          </div>
+
+          <!-- Metric 2: Active Projects -->
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Proyectos Activos</span>
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                <i class="fa-solid fa-briefcase"></i>
+              </div>
+            </div>
+            <div id="dash-projects-count" class="text-3xl font-extrabold text-white">0</div>
+            <p class="text-xs text-slate-500 mt-2">Trabajos registrados</p>
+          </div>
+
+          <!-- Metric 3: Total Income -->
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Ingresos</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i class="fa-solid fa-arrow-down-left"></i>
+              </div>
+            </div>
+            <div id="dash-income-total" class="text-3xl font-extrabold text-emerald-400">$0.00</div>
+            <p class="text-xs text-slate-500 mt-2">Entradas acumuladas</p>
+          </div>
+
+          <!-- Metric 4: Current Net Balance -->
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Balance Neto</span>
+              <div id="dash-balance-icon" class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <i class="fa-solid fa-scale-balanced"></i>
+              </div>
+            </div>
+            <div id="dash-net-balance" class="text-3xl font-extrabold text-white">$0.00</div>
+            <p class="text-xs text-slate-500 mt-2">Ingresos menos gastos</p>
+          </div>
+        </div>
+
+        <!-- Dashboard Charts & Upcoming Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Chart Container -->
+          <div class="lg:col-span-2 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-slate-200">Resumen Financiero</h3>
+              <span class="text-xs text-slate-400">Ingresos vs Gastos</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="financeChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Upcoming Alerts & Tasks Side Card -->
+          <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col">
+            <h3 class="font-bold text-slate-200 mb-4 flex items-center justify-between">
+              <span>Próximos Vencimientos</span>
+              <i class="fa-solid fa-bell text-amber-400 text-sm"></i>
+            </h3>
+            <div id="upcoming-tasks-list" class="space-y-3 flex-1 overflow-y-auto max-h-64 pr-1">
+              <!-- Dynamically populated tasks -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: TASKS & AGENDA -->
+      <section id="tab-tasks" class="tab-content hidden space-y-6">
+        <!-- Action Toolbar -->
+        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800">
+          <!-- Work Projects Selector & Manager -->
+          <div class="flex items-center space-x-3 w-full md:w-auto">
+            <select id="filter-project" onchange="renderTasks()" class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-cyan-500 outline-none w-full md:w-48">
+              <option value="ALL">Todos los Proyectos</option>
+              <!-- Dynamically filled -->
+            </select>
+            <button onclick="openModal('modal-project')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-sm border border-slate-700 flex items-center space-x-2 shrink-0 transition">
+              <i class="fa-solid fa-folder-plus text-cyan-400"></i>
+              <span>Nuevo Trabajo</span>
+            </button>
+          </div>
+
+          <!-- Status Filters -->
+          <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 self-stretch md:self-auto justify-center">
+            <button onclick="setTaskFilter('ALL')" id="filter-btn-ALL" class="task-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-slate-800 transition">Todas</button>
+            <button onclick="setTaskFilter('PENDING')" id="filter-btn-PENDING" class="task-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Pendientes</button>
+            <button onclick="setTaskFilter('COMPLETED')" id="filter-btn-COMPLETED" class="task-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Completadas</button>
+          </div>
+        </div>
+
+        <!-- Task List Container -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+          <div class="p-4 border-b border-slate-800/80 bg-slate-900/50 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Lista de Tareas & Recordatorios</span>
+            <span id="task-count-badge" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">0 tareas</span>
+          </div>
+          <div id="tasks-container" class="divide-y divide-slate-800/60 min-h-[200px]">
+            <!-- Rendered tasks list dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: FINANCES -->
+      <section id="tab-finances" class="tab-content hidden space-y-6">
+        <!-- Financial Summary Header Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">Ingresos Totales</span>
+            <span id="fin-total-income" class="text-2xl font-bold text-emerald-400">$0.00</span>
+          </div>
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">Gastos Totales</span>
+            <span id="fin-total-expenses" class="text-2xl font-bold text-rose-400">$0.00</span>
+          </div>
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <span class="text-xs text-slate-400 block mb-1">Saldo Disponible</span>
+            <span id="fin-total-balance" class="text-2xl font-bold text-white">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Actions & Transaction List -->
+        <div class="flex flex-col lg:flex-row gap-6">
+          <!-- Add Transaction Form Card -->
+          <div class="w-full lg:w-96 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl shrink-0 h-fit">
+            <h3 class="font-bold text-slate-200 mb-4 flex items-center space-x-2">
+              <i class="fa-solid fa-circle-plus text-cyan-400"></i>
+              <span>Registrar Movimiento</span>
+            </h3>
+            <form id="form-transaction" onsubmit="handleSaveTransaction(event)" class="space-y-4">
+              <!-- Type selector -->
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Tipo de Movimiento</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="cursor-pointer">
+                    <input type="radio" name="tx-type" value="INCOME" checked class="peer sr-only" onchange="updateCategoriesDropdown()">
+                    <div class="py-2 text-center text-xs font-semibold rounded-xl border border-slate-700 bg-slate-800 peer-checked:bg-emerald-500/20 peer-checked:border-emerald-500/50 peer-checked:text-emerald-300 transition">
+                      <i class="fa-solid fa-arrow-down mr-1"></i> Ingreso
+                    </div>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="tx-type" value="EXPENSE" class="peer sr-only" onchange="updateCategoriesDropdown()">
+                    <div class="py-2 text-center text-xs font-semibold rounded-xl border border-slate-700 bg-slate-800 peer-checked:bg-rose-500/20 peer-checked:border-rose-500/50 peer-checked:text-rose-300 transition">
+                      <i class="fa-solid fa-arrow-up mr-1"></i> Gasto
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Amount & Date -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Monto ($)</label>
+                  <input type="number" id="tx-amount" step="0.01" min="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Fecha</label>
+                  <input type="date" id="tx-date" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+                </div>
+              </div>
+
+              <!-- Category -->
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Categoría</label>
+                <select id="tx-category" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <!-- Associated Project -->
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Trabajo / Proyecto Asociado (Opcional)</label>
+                <select id="tx-project" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+                  <option value="">Ninguno / Personal</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <!-- Concept / Description -->
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Concepto / Descripción</label>
+                <input type="text" id="tx-description" placeholder="Ej: Pago de honorarios o factura luz" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+              </div>
+
+              <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-cyan-500/20">
+                Guardar Movimiento
+              </button>
+            </form>
+          </div>
+
+          <!-- Transaction History Table -->
+          <div class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+              <h3 class="font-bold text-slate-200">Historial de Transacciones</h3>
+              <select id="filter-tx-type" onchange="renderTransactions()" class="bg-slate-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 outline-none">
+                <option value="ALL">Todos los movimientos</option>
+                <option value="INCOME">Solo Ingresos</option>
+                <option value="EXPENSE">Solo Gastos</option>
+              </select>
+            </div>
+            <div class="overflow-x-auto flex-1">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="p-3.5">Fecha</th>
+                    <th class="p-3.5">Concepto</th>
+                    <th class="p-3.5">Categoría</th>
+                    <th class="p-3.5">Proyecto</th>
+                    <th class="p-3.5 text-right">Monto</th>
+                    <th class="p-3.5 text-center">Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="transactions-table-body" class="divide-y divide-slate-800/60">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL: NEW / EDIT TASK -->
+  <div id="modal-task" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-fade-in">
+      <button onclick="closeModal('modal-task')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 id="modal-task-title" class="text-lg font-bold text-white mb-4">Nueva Tarea / Recordatorio</h3>
+      
+      <form id="form-task" onsubmit="handleSaveTask(event)" class="space-y-4">
+        <input type="hidden" id="task-id">
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Título de la Tarea</label>
+          <input type="text" id="task-title" required placeholder="Ej: Entregar informe preliminar" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Proyecto / Trabajo</label>
+          <select id="task-project" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+            <option value="">General (Sin proyecto)</option>
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Fecha Vencimiento</label>
+            <input type="date" id="task-date" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Hora de Alerta</label>
+            <input type="time" id="task-time" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Prioridad</label>
+          <select id="task-priority" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+            <option value="LOW">Baja</option>
+            <option value="MEDIUM" selected>Media</option>
+            <option value="HIGH">Alta</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Notas / Detalles</label>
+          <textarea id="task-desc" rows="2" placeholder="Detalles adicionales..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none resize-none"></textarea>
+        </div>
+
+        <div class="pt-2 flex space-x-3">
+          <button type="button" onclick="closeModal('modal-task')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Cancelar</button>
+          <button type="submit" class="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition">Guardar Tarea</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NEW PROJECT / WORK -->
+  <div id="modal-project" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+      <button onclick="closeModal('modal-project')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-lg font-bold text-white mb-4">Nuevo Trabajo / Proyecto</h3>
+      
+      <form id="form-project" onsubmit="handleSaveProject(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Nombre del Trabajo o Proyecto</label>
+          <input type="text" id="project-name" required placeholder="Ej: Proyecto Rediseño Web Cliente X" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Color Identificador</label>
+          <div class="flex items-center space-x-3">
+            <input type="color" id="project-color" value="#0ea5e9" class="h-9 w-12 bg-transparent cursor-pointer rounded border-0">
+            <span class="text-xs text-slate-400">Elige un color para identificar tus tareas.</span>
+          </div>
+        </div>
+
+        <div class="pt-2 flex space-x-3">
+          <button type="button" onclick="closeModal('modal-project')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Cancelar</button>
+          <button type="submit" class="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition">Crear Proyecto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // DATA STATE MANAGEMENT & LOCAL STORAGE
+    const STORAGE_KEY = 'GESTOR_PRO_APP_DATA_V1';
+
+    let appState = {
+      projects: [
+        { id: 'proj-1', name: 'Desarrollo Web Cliente', color: '#0ea5e9' },
+        { id: 'proj-2', name: 'Mantenimiento General', color: '#10b981' }
+      ],
+      tasks: [
+        {
+          id: 'task-1',
+          title: 'Reunión inicial de requerimientos',
+          projectId: 'proj-1',
+          date: new Date().toISOString().split('T')[0],
+          time: '14:30',
+          priority: 'HIGH',
+          description: 'Revisar prototipos con el cliente por Zoom.',
+          completed: false,
+          alertTriggered: false
+        }
+      ],
+      transactions: [
+        {
+          id: 'tx-1',
+          type: 'INCOME',
+          amount: 850.00,
+          category: 'Honorarios',
+          projectId: 'proj-1',
+          description: 'Adelanto proyecto web',
+          date: new Date().toISOString().split('T')[0]
+        }
+      ]
+    };
+
+    const financeCategories = {
+      INCOME: ['Honorarios', 'Sueldo', 'Venta', 'Cobro de Trabajo', 'Inversión', 'Otros Ingresos'],
+      EXPENSE: ['Servicios', 'Impuestos', 'Insumos', 'Suscripciones', 'Alquiler', 'Movilidad', 'Otros Gastos']
+    };
+
+    let activeFilterStatus = 'ALL';
+    let financeChartInstance = null;
+
+    // INITIALIZATION ON PAGE LOAD
+    window.onload = function() {
+      loadDataFromStorage();
+      setupCurrentDate();
+      updateCategoriesDropdown();
+      populateProjectDropdowns();
+      renderAll();
+      checkNotificationPermissions();
+
+      // Start Alert Interval Checker (Every 10 seconds)
+      setInterval(checkScheduledAlerts, 10000);
+    };
+
+    function setupCurrentDate() {
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('current-date-str').textContent = new Date().toLocaleDateString('es-ES', options);
+      
+      // Default dates for forms to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('tx-date').value = today;
+      document.getElementById('task-date').value = today;
+      document.getElementById('task-time').value = '09:00';
+    }
+
+    // LOCALSTORAGE PERSISTENCE
+    function saveDataToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+    }
+
+    function loadDataFromStorage() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          appState = JSON.parse(stored);
+        } catch (e) {
+          console.error("Error cargando almacenamiento local", e);
+        }
+      }
+    }
+
+    // NAVIGATION TABS SWITCHER
+    function switchTab(tabId) {
+      // Hide all contents
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-slate-800', 'text-cyan-400');
+        el.classList.add('text-slate-400');
+      });
+
+      // Show selected tab
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      activeNav.classList.add('bg-slate-800', 'text-cyan-400');
+
+      // Update Title
+      const titles = {
+        'dashboard': 'Dashboard General',
+        'tasks': 'Agenda y Control de Tareas',
+        'finances': 'Finanzas Personales'
+      };
+      document.getElementById('page-title').textContent = titles[tabId] || 'GestorPro';
+
+      if (tabId === 'dashboard') {
+        renderChart();
+      }
+    }
+
+    // RENDER ALL DATA Across UI
+    function renderAll() {
+      renderProjectsList();
+      renderTasks();
+      renderTransactions();
+      renderDashboardMetrics();
+      renderChart();
+    }
+
+    // TASKS MANAGEMENT
+    function setTaskFilter(status) {
+      activeFilterStatus = status;
+      document.querySelectorAll('.task-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-800', 'text-white');
+        btn.classList.add('text-slate-400');
+      });
+      document.getElementById(`filter-btn-${status}`).classList.add('bg-slate-800', 'text-white');
+      renderTasks();
+    }
+
+    function handleSaveTask(e) {
+      e.preventDefault();
+      const id = document.getElementById('task-id').value;
+      const title = document.getElementById('task-title').value;
+      const projectId = document.getElementById('task-project').value;
+      const date = document.getElementById('task-date').value;
+      const time = document.getElementById('task-time').value;
+      const priority = document.getElementById('task-priority').value;
+      const description = document.getElementById('task-desc').value;
+
+      if (id) {
+        // Edit existing
+        const task = appState.tasks.find(t => t.id === id);
+        if (task) {
+          task.title = title;
+          task.projectId = projectId;
+          task.date = date;
+          task.time = time;
+          task.priority = priority;
+          task.description = description;
+          task.alertTriggered = false; // reset alert trigger
+        }
+      } else {
+        // Create new
+        const newTask = {
+          id: 'task-' + Date.now(),
+          title,
+          projectId,
+          date,
+          time,
+          priority,
+          description,
+          completed: false,
+          alertTriggered: false
+        };
+        appState.tasks.push(newTask);
+      }
+
+      saveDataToStorage();
+      closeModal('modal-task');
+      document.getElementById('form-task').reset();
+      renderAll();
+    }
+
+    function toggleTaskCompletion(taskId) {
+      const task = appState.tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        saveDataToStorage();
+        renderAll();
+      }
+    }
+
+    function deleteTask(taskId) {
+      if (confirm('¿Estás seguro de eliminar esta tarea?')) {
+        appState.tasks = appState.tasks.filter(t => t.id !== taskId);
+        saveDataToStorage();
+        renderAll();
+      }
+    }
+
+    function renderTasks() {
+      const container = document.getElementById('tasks-container');
+      const selectedProject = document.getElementById('filter-project').value;
+
+      let filtered = appState.tasks.filter(task => {
+        const matchesStatus = activeFilterStatus === 'ALL' ? true :
+                              activeFilterStatus === 'COMPLETED' ? task.completed : !task.completed;
+        const matchesProject = selectedProject === 'ALL' ? true : task.projectId === selectedProject;
+        return matchesStatus && matchesProject;
+      });
+
+      // Sort by date & time
+      filtered.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+
+      document.getElementById('task-count-badge').textContent = `${filtered.length} tarea(s)`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-500">
+            <i class="fa-regular fa-folder-open text-3xl mb-2 block"></i>
+            <span>No se encontraron tareas registradas o pendientes.</span>
+          </div>`;
+        return;
+      }
+
+      const priorityBadges = {
+        HIGH: '<span class="px-2 py-0.5 text-[10px] rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold">Alta</span>',
+        MEDIUM: '<span class="px-2 py-0.5 text-[10px] rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold">Media</span>',
+        LOW: '<span class="px-2 py-0.5 text-[10px] rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20 font-semibold">Baja</span>'
+      };
+
+      container.innerHTML = filtered.map(task => {
+        const project = appState.projects.find(p => p.id === task.projectId);
+        const projectBadge = project ? 
+          `<span class="px-2 py-0.5 text-[10px] rounded-md text-white font-medium" style="background-color: ${project.color}">${project.name}</span>` : 
+          `<span class="px-2 py-0.5 text-[10px] rounded-md bg-slate-800 text-slate-400">General</span>`;
+
+        return `
+          <div class="p-4 hover:bg-slate-800/40 transition flex items-start justify-between space-x-4 ${task.completed ? 'opacity-60' : ''}">
+            <div class="flex items-start space-x-3 flex-1">
+              <button onclick="toggleTaskCompletion('${task.id}')" class="mt-1 text-slate-500 hover:text-cyan-400 text-lg transition">
+                <i class="${task.completed ? 'fa-solid fa-circle-check text-cyan-400' : 'fa-regular fa-circle'}"></i>
+              </button>
+              <div class="space-y-1 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h4 class="font-semibold text-slate-200 text-sm ${task.completed ? 'line-through text-slate-500' : ''}">${task.title}</h4>
+                  ${projectBadge}
+                  ${priorityBadges[task.priority]}
+                </div>
+                ${task.description ? `<p class="text-xs text-slate-400">${task.description}</p>` : ''}
+                <div class="flex items-center space-x-3 text-[11px] text-slate-500 pt-1">
+                  <span><i class="fa-regular fa-calendar mr-1"></i>${task.date}</span>
+                  <span><i class="fa-regular fa-clock mr-1"></i>${task.time} hs</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center space-x-1">
+              <button onclick="deleteTask('${task.id}')" class="p-2 text-slate-500 hover:text-rose-400 rounded-lg transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // PROJECTS MANAGEMENT
+    function handleSaveProject(e) {
+      e.preventDefault();
+      const name = document.getElementById('project-name').value;
+      const color = document.getElementById('project-color').value;
+
+      const newProj = {
+        id: 'proj-' + Date.now(),
+        name,
+        color
+      };
+
+      appState.projects.push(newProj);
+      saveDataToStorage();
+      closeModal('modal-project');
+      document.getElementById('form-project').reset();
+      populateProjectDropdowns();
+      renderAll();
+    }
+
+    function populateProjectDropdowns() {
+      const filterSelect = document.getElementById('filter-project');
+      const taskSelect = document.getElementById('task-project');
+      const txSelect = document.getElementById('tx-project');
+
+      const optionsHtml = appState.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+      filterSelect.innerHTML = `<option value="ALL">Todos los Proyectos</option>` + optionsHtml;
+      taskSelect.innerHTML = `<option value="">General (Sin proyecto)</option>` + optionsHtml;
+      txSelect.innerHTML = `<option value="">Ninguno / Personal</option>` + optionsHtml;
+    }
+
+    function renderProjectsList() {
+      // Used internally for dropdown synchronization
+    }
+
+    // FINANCIAL TRANSACTIONS
+    function updateCategoriesDropdown() {
+      const type = document.querySelector('input[name="tx-type"]:checked').value;
+      const select = document.getElementById('tx-category');
+      select.innerHTML = financeCategories[type].map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function handleSaveTransaction(e) {
+      e.preventDefault();
+      const type = document.querySelector('input[name="tx-type"]:checked').value;
+      const amount = parseFloat(document.getElementById('tx-amount').value);
+      const date = document.getElementById('tx-date').value;
+      const category = document.getElementById('tx-category').value;
+      const projectId = document.getElementById('tx-project').value;
+      const description = document.getElementById('tx-description').value;
+
+      const newTx = {
+        id: 'tx-' + Date.now(),
+        type,
+        amount,
+        date,
+        category,
+        projectId,
+        description
+      };
+
+      appState.transactions.push(newTx);
+      saveDataToStorage();
+      
+      // Reset form fields
+      document.getElementById('tx-amount').value = '';
+      document.getElementById('tx-description').value = '';
+      renderAll();
+    }
+
+    function deleteTransaction(txId) {
+      if (confirm('¿Eliminar esta transacción?')) {
+        appState.transactions = appState.transactions.filter(t => t.id !== txId);
+        saveDataToStorage();
+        renderAll();
+      }
+    }
+
+    function renderTransactions() {
+      const tbody = document.getElementById('transactions-table-body');
+      const filter = document.getElementById('filter-tx-type').value;
+
+      let filtered = appState.transactions.filter(t => filter === 'ALL' ? true : t.type === filter);
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500">No hay movimientos registrados.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(tx => {
+        const project = appState.projects.find(p => p.id === tx.projectId);
+        const isIncome = tx.type === 'INCOME';
+        
+        return `
+          <tr class="hover:bg-slate-800/30 transition">
+            <td class="p-3.5 text-xs text-slate-400">${tx.date}</td>
+            <td class="p-3.5 font-medium text-slate-200">${tx.description}</td>
+            <td class="p-3.5"><span class="px-2 py-0.5 text-xs rounded-md bg-slate-800 text-slate-300 border border-slate-700">${tx.category}</span></td>
+            <td class="p-3.5 text-xs text-slate-400">${project ? project.name : '-'}</td>
+            <td class="p-3.5 text-right font-semibold ${isIncome ? 'text-emerald-400' : 'text-rose-400'}">
+              ${isIncome ? '+' : '-'}$${tx.amount.toFixed(2)}
+            </td>
+            <td class="p-3.5 text-center">
+              <button onclick="deleteTransaction('${tx.id}')" class="text-slate-500 hover:text-rose-400 transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // DASHBOARD & CHART RENDERING
+    function renderDashboardMetrics() {
+      const pendingTasks = appState.tasks.filter(t => !t.completed).length;
+      const totalIncome = appState.transactions.filter(t => t.type === 'INCOME').reduce((acc, t) => acc + t.amount, 0);
+      const totalExpenses = appState.transactions.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0);
+      const netBalance = totalIncome - totalExpenses;
+
+      document.getElementById('dash-pending-count').textContent = pendingTasks;
+      document.getElementById('dash-projects-count').textContent = appState.projects.length;
+      document.getElementById('dash-income-total').textContent = `$${totalIncome.toFixed(2)}`;
+      document.getElementById('dash-net-balance').textContent = `$${netBalance.toFixed(2)}`;
+      
+      const balanceEl = document.getElementById('dash-net-balance');
+      balanceEl.className = `text-3xl font-extrabold ${netBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+      // Update Financial Tab cards
+      document.getElementById('fin-total-income').textContent = `$${totalIncome.toFixed(2)}`;
+      document.getElementById('fin-total-expenses').textContent = `$${totalExpenses.toFixed(2)}`;
+      document.getElementById('fin-total-balance').textContent = `$${netBalance.toFixed(2)}`;
+
+      // Render upcoming tasks on Dashboard
+      renderUpcomingTasks();
+    }
+
+    function renderUpcomingTasks() {
+      const container = document.getElementById('upcoming-tasks-list');
+      const upcoming = appState.tasks
+        .filter(t => !t.completed)
+        .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
+        .slice(0, 4);
+
+      if (upcoming.length === 0) {
+        container.innerHTML = `<p class="text-slate-500 text-xs text-center py-4">No hay tareas pendientes.</p>`;
+        return;
+      }
+
+      container.innerHTML = upcoming.map(t => `
+        <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-between">
+          <div>
+            <h5 class="text-xs font-semibold text-slate-200">${t.title}</h5>
+            <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${t.date} ${t.time} hs</span>
+          </div>
+          <button onclick="toggleTaskCompletion('${t.id}')" class="text-xs px-2 py-1 bg-slate-700 hover:bg-cyan-600 text-slate-200 rounded-lg transition">
+            Listo
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('financeChart').getContext('2d');
+      const totalIncome = appState.transactions.filter(t => t.type === 'INCOME').reduce((acc, t) => acc + t.amount, 0);
+      const totalExpenses = appState.transactions.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0);
+
+      if (financeChartInstance) {
+        financeChartInstance.destroy();
+      }
+
+      financeChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Ingresos', 'Gastos'],
+          datasets: [{
+            label: 'Monto Total ($)',
+            data: [totalIncome, totalExpenses],
+            backgroundColor: ['rgba(16, 185, 129, 0.6)', 'rgba(244, 63, 94, 0.6)'],
+            borderColor: ['#10b981', '#f43f5e'],
+            borderWidth: 2,
+            borderRadius: 12
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(51, 65, 85, 0.3)' },
+              ticks: { color: '#94a3b8' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8' }
+            }
+          }
+        }
+      });
+    }
+
+    // WEB NOTIFICATION & REALTIME ALERT SYSTEM
+    function checkNotificationPermissions() {
+      if (!("Notification" in window)) return;
+      
+      const badge = document.getElementById('notif-badge');
+      const btn = document.getElementById('btn-request-notif');
+
+      if (Notification.permission === "granted") {
+        badge.textContent = "Activo";
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+        btn.classList.add('hidden');
+      } else if (Notification.permission === "denied") {
+        badge.textContent = "Bloqueado";
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30";
+      }
+    }
+
+    function requestNotificationPermission() {
+      if (!("Notification" in window)) {
+        alert("Este navegador no soporta notificaciones de escritorio.");
+        return;
+      }
+      Notification.requestPermission().then(permission => {
+        checkNotificationPermissions();
+      });
+    }
+
+    function checkScheduledAlerts() {
+      const now = new Date();
+      
+      appState.tasks.forEach(task => {
+        if (task.completed || task.alertTriggered) return;
+
+        const taskDateTime = new Date(`${task.date}T${task.time}`);
+        // Trigger alert if current time is equal or past the task target time within a 5-minute window
+        const diffMs = taskDateTime - now;
+
+        if (diffMs <= 0 && Math.abs(diffMs) < 300000) { // triggered within 5 mins
+          task.alertTriggered = true;
+          saveDataToStorage();
+
+          // Trigger Desktop Notification
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(`⏰ RECORDATORIO: ${task.title}`, {
+              body: `Fecha: ${task.date} - ${task.time} hs\nPrioridad: ${task.priority}`,
+              icon: 'https://cdn-icons-png.flaticon.com/512/3602/3602145.png'
+            });
+          } else {
+            alert(`⏰ RECORDATORIO DE TAREA:\n\n${task.title}\nHora: ${task.time}`);
+          }
